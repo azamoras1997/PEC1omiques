@@ -1,0 +1,249 @@
+---
+title: "Anàlisis exploratori de Cachexia"
+author: "Andrea Zamora Soria"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  toc: false
+  toc_depth: '3'
+  output_file: Informe.pdf
+---
+
+### **Resum i objectius de l'estudi:**
+
+La caquèxia és una síndrome metabòlica complexa associada a una malaltia subjacent (com el càncer) i es caracteritza per la pèrdua de massa muscular amb o sense pèrdua de massa grassa (Evans et al., 2008). A causa de la seva naturalesa debilitant, la caquèxia és objecte d'estudi en diferents contextos de malaltia crònica, com ara el càncer. En aquest estudi, es van recollir un total de 77 mostres d'orina, de les quals 47 corresponen a pacients amb caquèxia i 30 a pacients de control (dades del paquet de R "specmine.datasets").
+
+L'objectiu principal és explorar aquest dataset de caquèxia per obtenir una visió general de les dades, transformant-les i preparant-les per a l'anàlisi de resultats. Aquesta exploració inclou la identificació de biomarcadors i patrons associats a la síndrome, amb la finalitat de proporcionar informació rellevant que pugui contribuir a una millor comprensió d’aquesta síndrome metabòlica en el context de malalties com el càncer. A més, es definirà un conjunt de limitacions que permetin comprendre les restriccions i possibles biaixos presents en les dades, per tal de contextualitzar adequadament els resultats i orientar futurs estudis sobre aquesta patologia debilitant
+
+### **Metodes**
+
+Per dur a terme aquesta pràctica, s'ha clonat el repositori facilitat a l'enuncia de la PEC1 i a continuació he treballat amb el dataset **2024-Cachaxia.**
+
+Un cop seleccionat el dataset, l’arxiu "**Data_Catalog.xlsx"** del repositori proporciona informació rellevant sobre aquest. Sabem que el dataset forma part del paquet de R **"specmine.datasets",** i que les mostres estan dividides en dos grups no aparellats, tal com s'ha esmentat anteriorment. A més, es constata que tots els valors són numèrics i que no contenen cap valor NA.
+
+Per dur a terme la pràctica hem utilitzar el llenguatge de programació R ” RStudio Team (2020). RStudio: Integrated Development for R. RStudio, PBC, Boston, MA URL <http://www.rstudio.com/>.
+
+#### Paquets utilitzats:
+
+-Bioconductor: (Bioconductor: Open Source Software for Bioinformatics.” Bioconductor. Accessed April 8, 2024. <https://www.bioconductor.org/>.)
+
+-knitr: A general-purpose package for dynamic report generation in R. R package version 1.37.[R Documentation](https://cran.r-project.org/web/packages/knitr/index.html)
+
+-Specmine Dataset: <https://bioconductor.org/packages/release/data/experiment/html/specmine.datasets.html>
+
+-tidyr: Paquet de R dins de tydiverse per facilitar la transformació de dades i facilitar l'anàlisi i la visualització
+
+### **Resultats:**
+
+Per tal de dur a terme l'analisis exploratori de dades, primer de tot hem instalat a R el paquet bioconductor i hem importat les llibreries necessaries (BiocManager i Biobase)
+
+```{r, echo=FALSE, message=FALSE}
+library(BiocManager)
+library(Biobase)
+```
+
+Tal i com ja hem esmentat, l'arxiu .xlsx ens informa que el dataset es troba en el paquet de R "specmine.datasets", el qual descarregat per poder accedir a les dades.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+devtools::install_github("BioSystemsUM/specmine.datasets")
+```
+
+```{r, echo=FALSE, message=FALSE}
+library(specmine.datasets)
+data("cachexia")
+```
+
+A continuació mostrem les primeres set columnes per comprobar que la descarrega de dades es correcte:
+
+```{r, echo=FALSE}
+head(cachexia$data[, 1:7])
+```
+
+I informació general de Cachexia:
+
+```{r, echo=FALSE}
+#Dimensions
+dim(cachexia$data)
+#Informació de files i columnes
+str(cachexia$data)
+```
+
+En analitzar l'estructura del dataset que conté les dades de pacients amb caquexia, podem observar que la matriu Cachexia està composta per un total de 77 columnes, cada una corresponent a un pacient o mostres, i 63 files, que representen els valors de concentració de diversos biomarcadors. Aquestes files són fonamentals per a l'estudi, ja que ofereixen una visió detallada dels factors bioquímics i fisiològics que poden estar implicats en la caquexia.
+
+A més, les metadades associades a aquest dataset també contenen 77 files, correspondents als mateixos pacients o mostres, però només inclouen una sola columna anomenada muscle.loss. Aquesta columna (variable qualitativa) indica si cada pacient és del grup de control o del grup cachexic. La informació sobre si un pacient presenta pèrdua muscular significativa (cachexia) o no (control) és essencial per a l'anàlisi i la interpretació dels resultats. Aquesta classificació permet una comparació directa entre els pacients que experimenten caquexia i aquells que no, ajudant a identificar possibles biomarcadors o mecanismes que contribueixin a la pèrdua de massa muscular.
+
+```{r echo=FALSE}
+#Informació sobre metadata
+str(cachexia$metadata)
+```
+
+Ara que hem confirmat que les dades s'han descarregat correctament i hem revisat l'estructura tant de les dades com de les metadades, el següent pas és crear un contenidor de tipus SummarizedExperiment. Aquest objecte serà molt útil per gestionar i organitzar les dades i les metadades d'una manera estructurada,ja que permet emmagatzemar tant les dades quantificades com les metadades associades (informació sobre el dataset, les files i les columnes), facilitant així la seva manipulació i anàlisi en el context de la investigació biomèdica.
+
+Per dur a terme aquesta part de l'exercici, m'he guiat a través de [Bioconductor](https://bioconductor.org/packages/release/bioc/vignettes/SummarizedExperiment/inst/doc/SummarizedExperiment.html#constructing-a-summarizedexperiment)
+
+```{r, warning=FALSE, message=FALSE}
+library(SummarizedExperiment)
+```
+
+```{r}
+# Convertir les dades a una matriu si no ho és ja
+cachexia_SE <- SummarizedExperiment(
+  assays=list(counts=as.matrix(cachexia$data)),
+  rowData = DataFrame(Compound=rownames(cachexia$data)),
+  colData=cachexia$metadata)
+```
+
+Un cop creem l'objecte SummarizedExperiment, expliquem l'estructura d'e l'objecte'aquesr, visualitzem les primeres files i comprovem les metadades. En el seguent codi:
+
+**-assays:** Aquí estem passant les dades de concentració de biomarcadors com una matriu per compatibilitat . cachexia\$data ha de contenir les dades que desitgem analitzar.
+
+\-**rowData:** Aquí especifico la informació associada a cada fila (en aquest cas, compounds o biomarcadors) com un dataframe. Utilitzem rownames(cachexia\$data) per obtenir els noms dels biomarcadors que seran utilitzats com a identificadors.
+
+**-colData**: Aquesta part és per les metadades, que contenen informació sobre la perdua de pes de cada pacient. En aquest cas, s'espera que cachexia\$metadata sigui un dataframe amb la informació adequada.
+
+```{r echo=FALSE}
+# Comprovem el resultat
+cachexia_SE
+```
+
+**Analisi exploratori de les dades**
+
+**1.Dimensions:** Com ja s'ha vist anteriorment, aquest primer pas ajuda a assegurar-se que les dimensions de les dades són les esperades, amb el nombre correcte de mostres (pacients) i variables (biomarcadors). Així, es confirma que el conjunt de dades s'ha carregat correctament i es pot avançar amb confiança en l'anàlisi.
+
+```{r echo=FALSE}
+dim(cachexia_SE)
+```
+
+**2.Analisi estadístic:** Proporciona una visió inicial del rang de valors, la mitjana, la mediana i altres estadístiques importants per cada biomarcador. Aquesta informació és útil per identificar valors extrems, distribucions inesperades o valors que podrien necessitar un tractament especial. En aquest cas només mostrem les cinc primeres columnes (pacients) perque no s'extengui molt el resultat.
+
+```{r echo=FALSE}
+summary(cachexia$data[,1:5])
+
+
+```
+
+3.**Comprovació de dades mancants:** La presència de valors mancants pot afectar la qualitat de les dades i, per tant, la integritat de les conclusions. Es per això que es molt important assegurar-nos que no existeixen.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+missing_values <- sum(is.na(assay(cachexia_SE)))
+cat("Valors mancants al dataset:", missing_values, "\n")
+
+```
+
+4**.Visualització:** Aquest és essencial per obtenir una visió ràpida dels patrons de dades. Els boxplots mostren la distribució i els possibles valors atípics per cada biomarcador, mentre que els histogrames permeten entendre millor la distribució de cada variable. Això facilita la detecció de possibles valors atípics i desequilibris entre grups.
+
+\-**Histograma:** en aquest cas transposarem la matriu perque els biomarcadors es presentin com columnes. A continuació visualitzem els 9 primers biomarcadors en un format 3x3 perque sigui més visual. Donat que les dades estan entre el rang 0-33860.35, primer farem una transformació logarítmica (log2).
+
+```{r echo=FALSE}
+# Apliquem log2 a les dades de l'assay dins del SummarizedExperiment
+exp_matrix <- log2(assays(cachexia_SE)$counts)
+dades_transposades <- t(exp_matrix)
+#Organitzem l'hhistograma en 3x3 pels primers 9 biomarcadors:
+par(mfrow = c(3, 3))
+for (i in 1:9) {
+    hist(
+        dades_transposades[, i], 
+        main = colnames(dades_transposades)[i], 
+        xlab = "Concentración", 
+        col = "skyblue", 
+        border = "black"
+    )
+}
+```
+
+En aquest gràfic es pot observar que la majoria de les distribucions són força simètriques o lleugerament asimètriques, amb variacions en les concentracions segons el biomarcador. Alguns biomarcadors, "3-Indoxylsulfate," tenen distribucions més concentrades, mentre que altres, com "2-Oxoglutarate," mostren una major dispersió, amb valors que arriben a concentracions més altes. Aquestes variacions suggereixen diferents nivells de presència entre pacients, proporcionant informació inicial sobre les diferències en perfils metabòlics dins el grup de pacients amb caquèxia.
+
+**5.Boxplot:** En aquest cas el que busquem comparar la distribució de diversos metabolits (biomarcadors) entre les mostres de caquexia i control. Per fer-ho convertim la matriu a dataframe i seleccionem els metabolits que volem comparar. A continuació creem el gràfic per poder comparar-los. Per això utilitzarem també el paquet tidyr i ggplot:
+
+```{r echo=FALSE}
+# Convertir les dades transposades a data.frame
+data_frame <- as.data.frame(dades_transposades)
+# Assignar els metabolits (primeres 4 columnes)
+metabolits <- colnames(data_frame)[1:4]
+# Afegim la columna Muscle.loss
+data_frame$Muscle.loss <- colData(cachexia_SE)$Muscle.loss
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Generem gràfics de caixa per als primers 4 metabolits
+library(tidyr)
+library(ggplot2)
+
+# Convertim el data_frame a formato llarg per poder comparar cada metabòlit
+data_long <- data_frame %>%
+  pivot_longer(cols = metabolits, 
+               names_to = "Metabolite", 
+               values_to = "Value")
+
+# Creem el gràfic de caixes pels metabolits per condición
+ggplot(data_long, aes(x = Muscle.loss, y = Value, fill = Muscle.loss)) +
+  geom_boxplot() +
+  facet_wrap(~ Metabolite) + # Mostrem un gràfic separat per metabòlit
+  labs(x = "Muscle loss", y = "Valor", title = "Distribució dels Metabolits per Condició") +
+  theme_minimal() + 
+  scale_fill_brewer(palette = "Set3") + 
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 12), 
+        legend.position = "none")
+```
+
+En el recull de boxplot es pot obervar que pels 4 biomarcadors representats, la concentració es més elevada en pacients amb perdua de musculatura. Tot i aixó, s'haurien d'estudiar tots els biomarcadors per extreure conclusions més esclaridores.
+
+**6.PCA:** En el nostre cas fem un PCA, posant atenció en el percentatge de variabilitat de les dades explicada per dos components. Ens ajudarà a identificar patrons en les dades i com es relacionen les mostres entre si. En el context de la caquexia, pot ajudar a veure com les concentracions dels biomarcadors varien entre els pacients amb caquexia i els controls, aportant informació útil per a futures investigacions. Per dur a terme la creació del PCA hem instalat el paquet "ggplot2" de Bioconductor.
+
+A continuació podem realitzar l'analisi de PCA sobre la matriu d'expressió transformada. Per fer això utilitzem prcomp sobre la matriu transposada ja que les mostres son les columnes i després extreiem les dades PCA. Per últim agreguem la condició (Muscle.loss) ja que es la nostra variable
+
+```{r echo=FALSE}
+pca_result<-prcomp(t(exp_matrix),scale=TRUE)
+pca_data<-as.data.frame(pca_result$x) #Coordenades en els PC
+pca_data$Muscle.loss<-colData(cachexia_SE)$Muscle.loss
+```
+
+A continuació visualitzem les dades per poder entendre com es distribueixen les mostres en l'espai definit per les components principals i quines son les relacions entre els biomarcadors que explica la variabilitat:
+
+```{r echo=FALSE}
+ggplot(pca_data,aes(x=PC1,y=PC2,color=Muscle.loss))+
+  geom_point(size=3)+
+  labs(x=paste0("PC1: ", round(100*summary(pca_result)$importance[2,1],1),"%"),
+       y=paste0("PC2: ",round(100*summary(pca_result)$importance[2,2],1),"%"),
+       title="PCA de Cachexia Data")+
+  theme_minimal()
+```
+
+D'aquesta manera podem afirmar que el PC1 (58,5%) es el que millor explica la variabilitat de mostres. En quant als punts, en color vermell, etiquetats com "cachexic", representen mostres que tenen pèrdua muscular (caquèxia) i en color verd blavós, etiquetats com "control", representen mostres de control (sense pèrdua muscular). A simple vista, no sembla haver-hi una separació clara entre les mostres "cachexic" i "control" en els dos primers components principals. Això suggereix que, almenys en termes dels components principals PC1 i PC2, no existeix una diferència òbvia o patró de separació entre aquests dos grups en el conjunt de dades. Per tant, aquesta anàlisi preliminar indica que el PCA en aquests dos components principals no és suficient per diferenciar clarament entre els grups, per tant hauriem, per exemple, d'afegir PC3 i PC4 o altres proves complementaries com per exemple un "Cluster dendogram".
+
+8.Cluster dendogram: Ens podria servir per identificar subgrups de pacients amb patrons metabòlics similars, com diferents graus de la malaltia, cosa que facilita la comprensió de les dades. També a associar biomarcadors específics a certs grups, detectant tant patrons comuns com anomalies, que poden indicar casos especials o errors en les dades. Això proporciona una base més precisa per a anàlisis estadístiques en subgrups homogenis i simplifica la visualització de dades complexes en gràfics més comprensibles.
+
+Per dur a terme l'analisis he seleccionat un subconjunt de dades per fer clustering jeràrquic, en aquest és ideal per simplificar la visualització i facilitar la interpretació dels resultats, ja que un conjunt més petit és més clar i manejable.
+
+```{r, warning=FALSE, message=FALSE}
+library(ComplexHeatmap)
+#Escalem les dades per igualar les variancies
+data_scaled <- scale(t(exp_matrix))
+exp_matrix_subset <- data_scaled[1:10, 1:10]
+dist_matrix_subset <- dist(exp_matrix_subset)
+clust.euclid.average_subset <- hclust(dist_matrix_subset, method = "average")
+plot(clust.euclid.average_subset, hang = -1, main = "Dendrograma de Clustering (10 Pacients y 10 Biomarcadors)")
+
+```
+
+En el dendrograma es mostra com es fusionen les mostres o variables en funció de la seva similitud. Els grups que es fusionen a una altura baixa són més similars (PIF_110,PIF154), mentre que els que es fusionen a una altura alta són més distants (NETCR_014_V1 amb la resta). L'altura de tall permet definir els clústers o grups en què es poden agrupar les mostres. En aquest cas, les mostres o variables agrupades en aquests clústers tenen una gran variabilitat interna i no són gaire similars entre elles. Això vol dir que els grups formats estan relativament dispersos, i no hi ha agrupacions molt fortes basades en la similitud entre les categories definides.
+
+Conclusions i limitacions de l'estudi:
+
+-El conjunt de dades conté un **nombre relativament petit de mostres** (77 mostres), cosa que pot dificultar la generalització dels resultats. A més, la manca d'algunes variables clau podria limitar les conclusions.
+
+\-**Falta de separació clara entre grups** (Caquèxia vs Control): Tot i que les anàlisis visuals com el PCA i els boxplots han mostrat algunes diferències, no s'ha observat una separació clara i consistent entre els pacients amb caquèxia i els controls en els dos primers components principals del PCA. Això podria indicar que els biomarcadors utilitzats no són suficients per identificar de manera òbvia les diferències entre els dos grups, o que els biomarcadors no estan sent analitzats en la seva totalitat.
+
+-Alguns **histogrames mostren distribucions amb valors atípics** o una gran dispersió, indicant que les dades no són completament simètriques o segueixen una distribució normal. Això pot dificultar la interpretació de resultats i limitar l'eficàcia d'algunes tècniques estadístiques que assumeixen normalitat.
+
+\-**El clustering jeràrquic** no ha revelat clústers molt diferenciats, el que pot suggerir que els biomarcadors no són prou específics per agrupar els pacients en subgrups clars basats en les seves característiques metabòliques.
+
+\-**La selecció limitada de biomarcadors en l'anàlisi** (només els primers 9 o 10) pot reduir la capacitat d'identificar patrons metabòlics complets. Una anàlisi més exhaustiva amb un conjunt de biomarcadors més gran podria proporcionar una millor diferenciació entre els grups de pacients.
+
+\-**Les metadades disponibles** (únicament la variable "muscle.loss") poden ser insuficients per explicar la variabilitat entre les mostres. Altres factors com l'edat, el gènere, o altres condicions mèdiques dels pacients podrien influir en els resultats i proporcionar una visió més completa.
+
+\-**No s'ha realitzat una validació externa de les anàlisi**s, per exemple, mitjançant l'ús de dades de validació independents o tècniques de validació creuada. Això limita la confiança en la robustesa dels resultats obtinguts.
+
+En conclusió, aquestes limitacions suggereixen que, tot i que l'anàlisi exploratòria de les dades pot proporcionar una comprensió inicial de les possibles diferències metabòliques associades a la caquèxia, encara es necessiten estudis més profunds, amb més dades i una selecció més precisa de biomarcadors per obtenir resultats més clarament definitius.

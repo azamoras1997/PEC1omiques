@@ -1,0 +1,19 @@
+---
+title: "Metadades de Cachexia en format .Rmd"
+author: "Andrea Zamora"
+date: "2024-11-11"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Metadades 2024-Cachexia:
+
+```{r}
+library(specmine.datasets)
+data("cachexia")
+cachexia_metadades<-cachexia$metadata
+
+```
